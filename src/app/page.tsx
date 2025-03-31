@@ -1,103 +1,172 @@
-import Image from "next/image";
+"use client"
 
-export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+export default function Page() {
+  const subjects = [
+    { name: "Matemática", hours: 6 },
+    { name: "Português", hours: 4 },
+    { name: "História", hours: 3 },
+    { name: "Geografia", hours: 3 },
+    { name: "Ciências", hours: 4 },
+    { name: "Inglês", hours: 2 },
+    { name: "Educação Física", hours: 2 },
+  ];
+
+  const [days, setDays] = useState(
+    Array.from({ length: 30 }, (_, i) => ({
+      day: i + 1,
+      events: [] as Array<{ id: string; name: string; hours: number }>
+    }))
   );
+
+  const handleDragEnd = (result: DropResult) => {
+    const { source, destination } = result;
+
+    if (!destination) return;
+
+    if (source.droppableId === "materias" && destination.droppableId.startsWith("dia-")) {
+      const subject = subjects.find(subj => subj.name === result.draggableId);
+      if (!subject) return;
+
+      const diaDestino = parseInt(destination.droppableId.split("-")[1]);
+
+      if (source.droppableId.startsWith("dia-") && destination.droppableId === "materias") {
+        const diaOrigem = parseInt(source.droppableId.split("-")[1]);
+
+        setDays(prevDays =>
+          prevDays.map(dia => {
+            if (dia.day === diaOrigem) {
+              const newEvents = dia.events.filter((_, index) => index !== source.index);
+              return { ...dia, events: newEvents };
+            }
+            return dia;
+          })
+        );
+      }
+
+      setDays(prevDays =>
+        prevDays.map(dia => {
+          if (dia.day === diaDestino) {
+            return {
+              ...dia,
+              events: [...dia.events, {
+                id: `${subject.name}-${Date.now()}`,
+                name: subject.name,
+                hours: subject.hours
+              }]
+            }
+          }
+          return dia;
+        })
+      );
+    }
+  };
+
+  return (
+    <div className="flex flex-col md:flex-row min-h-screen">
+      <DragDropContext onDragEnd={handleDragEnd}>
+
+
+        <aside className="w-1/4 p-4 bg-muted/20">
+          <Card className="h-full">
+            <CardHeader>
+              <CardTitle>Matérias</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Droppable droppableId="materias">
+                {(provided) => (
+                  <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-3">
+                    {subjects.map((subject, index) => (
+                      <Draggable
+                        key={subject.name}
+                        draggableId={subject.name}
+                        index={index}
+                      >
+                        {(provided) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            {...provided.dragHandleProps}
+                            className="flex justify-between items-center border rounded-md p-2"
+                          >
+                            <span className="font-medium">{subject.name}</span>
+                            <span className="bg-primary text-primary-foreground px-2 py-1 rounded-full text-sm">
+                              {subject.hours} horas
+                            </span>
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
+                  </div>
+                )}
+              </Droppable>
+            </CardContent>
+          </Card>
+        </aside>
+
+
+        <main className="w-full md:w-3/4 p-4">
+          <div className="mb-6 text-center">
+            <h2 className="text-3xl font-bold">Março</h2>
+          </div>
+
+          <div className="grid grid-cols-7 gap-2">
+            {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((dia) => (
+              <div key={dia} className="text-center font-medium p-2">
+                {dia}
+              </div>
+            ))}
+
+            {Array.from({ length: 3 }, (_, i) => (
+              <div key={`empty-${i}`} className="aspect-square min-h-[100px]"></div>
+            ))}
+
+            {days.map((diaObj) => (
+              <Droppable key={diaObj.day} droppableId={`dia-${diaObj.day}`}>
+                {(provided) => (
+                  <div
+                    {...provided.droppableProps}
+                    ref={provided.innerRef}
+                    className="aspect-square border rounded-md relative p-2 min-h-[100px] hover:bg-muted/10 transition-colors"
+                  >
+                    <span className="absolute top-1 left-1 text-sm font-medium text-muted-foreground">
+                      {diaObj.day}
+                    </span>
+                    <div className="pt-5 h-full space-y-1">
+                      {diaObj.events.map((evento, index) => (
+                        <Draggable
+                          key={evento.id}
+                          draggableId={evento.id}
+                          index={index}
+                        >
+                          {(provided) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              {...provided.dragHandleProps}
+                              className="text-sm bg-primary/10 p-1 rounded truncate border"
+                            >
+                              {evento.name}
+                              <span className="ml-1 text-xs text-primary">
+                                ({evento.hours}h)
+                              </span>
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
+                    </div>
+                  </div>
+                )}
+              </Droppable>
+            ))}
+          </div>
+        </main>
+      </DragDropContext>
+    </div>
+  )
 }
