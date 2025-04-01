@@ -1,8 +1,13 @@
-"use client"
+"use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DragDropContext,
+  Droppable,
+  Draggable,
+  DropResult,
+} from "@hello-pangea/dnd";
 
 export default function Page() {
   const subjects = [
@@ -18,67 +23,141 @@ export default function Page() {
   const [days, setDays] = useState(
     Array.from({ length: 30 }, (_, i) => ({
       day: i + 1,
-      events: [] as Array<{ id: string; name: string; hours: number }>
+      events: [] as Array<{ id: string; name: string; hours: number }>,
     }))
   );
 
   const handleDragEnd = (result: DropResult) => {
+    console.log(result)
     const { source, destination } = result;
 
-    if (!destination) return;
 
-    if (source.droppableId === "materias" && destination.droppableId.startsWith("dia-")) {
-      const subject = subjects.find(subj => subj.name === result.draggableId);
+    if(source.droppableId.startsWith("dia-") && !destination){
+      const diaOrigem = parseInt(source.droppableId.split("-")[1]);
+
+      setDays((prevDays) =>
+        prevDays.map((dia) => {
+          if (dia.day === diaOrigem) {
+            const newEvents = dia.events.filter(
+              (_, index) => index !== source.index
+            );
+            return { ...dia, events: newEvents };
+          }
+          return dia;
+        })
+      );
+    }
+
+    if (!destination) {
+      return;
+    }
+
+    if (
+      source.droppableId === "materias" &&
+      destination.droppableId.startsWith("dia-")
+    ) {
+      const subject = subjects.find((subj) => subj.name === result.draggableId);
       if (!subject) return;
 
       const diaDestino = parseInt(destination.droppableId.split("-")[1]);
 
-      if (source.droppableId.startsWith("dia-") && destination.droppableId === "materias") {
-        const diaOrigem = parseInt(source.droppableId.split("-")[1]);
+      setDays((prevDays) =>
+        prevDays.map((dia) => {
+          if (dia.day === diaDestino) {
+            return {
+              ...dia,
+              events: [
+                ...dia.events,
+                {
+                  id: `${subject.name}-${Date.now()}`,
+                  name: subject.name,
+                  hours: subject.hours,
+                },
+              ],
+            };
+          }
+          return dia;
+        })
+      );
+    }
 
-        setDays(prevDays =>
-          prevDays.map(dia => {
-            if (dia.day === diaOrigem) {
-              const newEvents = dia.events.filter((_, index) => index !== source.index);
-              return { ...dia, events: newEvents };
+    if (
+      source.droppableId.startsWith("dia-") &&
+      destination.droppableId === "materias"
+    ) {
+      console.log("2");
+      console.log(result)
+      const diaOrigem = parseInt(source.droppableId.split("-")[1]);
+
+      setDays((prevDays) =>
+        prevDays.map((dia) => {
+          if (dia.day === diaOrigem) {
+            const newEvents = dia.events.filter(
+              (_, index) => index !== source.index
+            );
+            return { ...dia, events: newEvents };
+          }
+          return dia;
+        })
+      );
+    }
+
+    if (
+      source.droppableId.startsWith("dia-") &&
+      destination.droppableId.startsWith("dia-")
+    ) {
+      const diaOrigem = parseInt(source.droppableId.split("-")[1]);
+      const diaDestino = parseInt(destination.droppableId.split("-")[1]);
+
+      let eventToMove: { id: string; name: string; hours: number } | null =
+        null;
+
+      setDays((prevDays) =>
+        prevDays.map((dia) => {
+          if (dia.day === diaOrigem) {
+            // Remove o evento e guarda-o para inserir no destino
+            eventToMove = dia.events[source.index];
+            const newEvents = dia.events.filter(
+              (_, index) => index !== source.index
+            );
+            return { ...dia, events: newEvents };
+          }
+          return dia;
+        })
+      );
+
+      if (eventToMove) {
+        setDays((prevDays) =>
+          prevDays.map((dia) => {
+            if (dia.day === diaDestino) {
+              return {
+                ...dia,
+                events: [...dia.events, eventToMove!],
+              };
             }
             return dia;
           })
         );
       }
-
-      setDays(prevDays =>
-        prevDays.map(dia => {
-          if (dia.day === diaDestino) {
-            return {
-              ...dia,
-              events: [...dia.events, {
-                id: `${subject.name}-${Date.now()}`,
-                name: subject.name,
-                hours: subject.hours
-              }]
-            }
-          }
-          return dia;
-        })
-      );
     }
   };
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen">
       <DragDropContext onDragEnd={handleDragEnd}>
-
-
-        <aside className="w-1/4 p-4 bg-muted/20">
-          <Card className="h-full">
-            <CardHeader>
-              <CardTitle>Matérias</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Droppable droppableId="materias">
-                {(provided) => (
-                  <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-3">
+        <Droppable droppableId="materias">
+          {(provided) => (
+            <aside className="w-1/4 p-4 bg-muted/20">
+              <Card className="h-full">
+                <CardHeader>
+                  <CardTitle>Matérias</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div
+                    {...provided.droppableProps}
+                    ref={provided.innerRef}
+                    className="space-y-3"
+                  >
                     {subjects.map((subject, index) => (
                       <Draggable
                         key={subject.name}
@@ -102,12 +181,11 @@ export default function Page() {
                     ))}
                     {provided.placeholder}
                   </div>
-                )}
-              </Droppable>
-            </CardContent>
-          </Card>
-        </aside>
-
+                </CardContent>
+              </Card>
+            </aside>
+          )}
+        </Droppable>
 
         <main className="w-full md:w-3/4 p-4">
           <div className="mb-6 text-center">
@@ -122,7 +200,10 @@ export default function Page() {
             ))}
 
             {Array.from({ length: 3 }, (_, i) => (
-              <div key={`empty-${i}`} className="aspect-square min-h-[100px]"></div>
+              <div
+                key={`empty-${i}`}
+                className="aspect-square min-h-[100px]"
+              ></div>
             ))}
 
             {days.map((diaObj) => (
@@ -168,5 +249,5 @@ export default function Page() {
         </main>
       </DragDropContext>
     </div>
-  )
+  );
 }
